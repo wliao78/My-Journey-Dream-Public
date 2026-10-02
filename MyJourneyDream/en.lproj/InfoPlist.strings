@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "My Journey Dream";
+"NSMicrophoneUsageDescription" = "Record your travel ideas and confirmed plans.";
+"NSSpeechRecognitionUsageDescription" = "Turn spoken travel requests into editable text.";
