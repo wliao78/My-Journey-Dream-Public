@@ -6,6 +6,7 @@ enum JourneyMode: String, Codable, CaseIterable, Identifiable {
     case slowStay = "旅居"
 
     var id: String { rawValue }
+    var title: String { NSLocalizedString(rawValue, comment: "Journey mode") }
     var symbol: String {
         switch self {
         case .walking: "figure.hiking"
@@ -22,9 +23,9 @@ enum JourneyMode: String, Codable, CaseIterable, Identifiable {
     }
     var question: String {
         switch self {
-        case .walking: "哪些步行体验值得专门去？"
-        case .roadTrip: "哪条路本身值得开？"
-        case .slowStay: "哪里值得舒服地住上几周？"
+        case .walking: String(localized: "哪些步行体验值得专门去？")
+        case .roadTrip: String(localized: "哪条路本身值得开？")
+        case .slowStay: String(localized: "哪里值得舒服地住上几周？")
         }
     }
 }

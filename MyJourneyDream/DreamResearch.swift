@@ -4,6 +4,7 @@ import Security
 enum DreamThinkingDepth: String, CaseIterable, Identifiable {
     case quick = "快速", balanced = "中度", deep = "深度"
     var id: Self { self }
+    var title: String { NSLocalizedString(rawValue, comment: "Research depth") }
     var effort: String {
         switch self {
         case .quick: "low"
@@ -84,7 +85,7 @@ enum DreamResearch {
     static func fallbackRecommendations(modes: Set<JourneyMode>) -> [JourneyExperience] {
         demoExperiences.filter { modes.contains($0.mode) }.map { experience in
             var item = experience
-            item.confidence = "通用灵感示例；尚未根据你的要求完成 AI 推荐或实时核对。"
+            item.confidence = String(localized: "通用灵感示例；尚未根据你的要求完成 AI 推荐或实时核对。")
             return item
         }
     }
@@ -427,21 +428,21 @@ enum DreamResearch {
 
     private static var demoExperiences: [JourneyExperience] {
         [
-            JourneyExperience(mode: .walking, title: "云上山脊与雾森林", region: "葡萄牙 · 马德拉",
-                season: "10 月", duration: "7 天", signatureExperience: "每天一条代表性步道，兼顾山脊、森林与海岸。",
-                whyNow: "", whatYouLove: "云海 · 月桂林 · 黑沙海滩", whatToAccept: "", routeOrBase: "",
-                longStayValue: "", confidence: "等待深度研究", evidence: [],
-                highlights: ["Pico 山脊云海", "Fanal 雾森林", "天然海水池"]),
-            JourneyExperience(mode: .roadTrip, title: "城堡、荒野与威士忌之路", region: "英国 · 苏格兰高地",
-                season: "9 月", duration: "8 天", signatureExperience: "把公路本身变成旅程，放慢节奏穿过高地与海岸。",
-                whyNow: "", whatYouLove: "荒野公路 · 小镇 · 威士忌", whatToAccept: "", routeOrBase: "",
-                longStayValue: "", confidence: "等待深度研究", evidence: [],
-                highlights: ["Applecross 山路", "Torridon 荒野", "高地庄园夜晚"]),
-            JourneyExperience(mode: .slowStay, title: "住进西班牙南部", region: "西班牙 · 安达卢西亚",
-                season: "11 月", duration: "21 天", signatureExperience: "少换住所，用固定咖啡馆和散步路线建立生活感。",
-                whyNow: "", whatYouLove: "街区生活 · Tapas · 近郊慢游", whatToAccept: "", routeOrBase: "",
-                longStayValue: "", confidence: "等待深度研究", evidence: [],
-                highlights: ["塞维利亚街区", "格拉纳达黄昏", "固定早餐店"])
+            JourneyExperience(mode: .walking, title: String(localized: "云上山脊与雾森林"), region: String(localized: "葡萄牙 · 马德拉"),
+                season: String(localized: "10 月"), duration: String(localized: "7 天"), signatureExperience: String(localized: "每天一条代表性步道，兼顾山脊、森林与海岸。"),
+                whyNow: "", whatYouLove: String(localized: "云海 · 月桂林 · 黑沙海滩"), whatToAccept: "", routeOrBase: "",
+                longStayValue: "", confidence: String(localized: "等待深度研究"), evidence: [],
+                highlights: [String(localized: "Pico 山脊云海"), String(localized: "Fanal 雾森林"), String(localized: "天然海水池")]),
+            JourneyExperience(mode: .roadTrip, title: String(localized: "城堡、荒野与威士忌之路"), region: String(localized: "英国 · 苏格兰高地"),
+                season: String(localized: "9 月"), duration: String(localized: "8 天"), signatureExperience: String(localized: "把公路本身变成旅程，放慢节奏穿过高地与海岸。"),
+                whyNow: "", whatYouLove: String(localized: "荒野公路 · 小镇 · 威士忌"), whatToAccept: "", routeOrBase: "",
+                longStayValue: "", confidence: String(localized: "等待深度研究"), evidence: [],
+                highlights: [String(localized: "Applecross 山路"), String(localized: "Torridon 荒野"), String(localized: "高地庄园夜晚")]),
+            JourneyExperience(mode: .slowStay, title: String(localized: "住进西班牙南部"), region: String(localized: "西班牙 · 安达卢西亚"),
+                season: String(localized: "11 月"), duration: String(localized: "21 天"), signatureExperience: String(localized: "少换住所，用固定咖啡馆和散步路线建立生活感。"),
+                whyNow: "", whatYouLove: String(localized: "街区生活 · Tapas · 近郊慢游"), whatToAccept: "", routeOrBase: "",
+                longStayValue: "", confidence: String(localized: "等待深度研究"), evidence: [],
+                highlights: [String(localized: "塞维利亚街区"), String(localized: "格拉纳达黄昏"), String(localized: "固定早餐店")])
         ]
     }
 
@@ -464,9 +465,16 @@ enum DreamResearch {
                                 background: Bool = true, timeout: TimeInterval = 45,
                                 model: String = "gpt-6-astra") async throws -> ResearchResponse {
         guard let key = DreamKeychain.read(), !key.isEmpty else { throw DreamResearchError.missingKey }
+        guard PublicAIConsent.granted else {
+            throw NSError(domain: "AIConsent", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                NSLocalizedString("请先在设置中同意向所选 AI 服务商发送资料。", comment: "AI consent required")])
+        }
+        let localizedPrompt = prompt + (Locale.current.language.languageCode?.identifier == "zh"
+            ? "\nUse Simplified Chinese for all user-facing strings."
+            : "\nUse natural English for all user-facing strings, regardless of earlier language instructions.")
         var body: [String: Any] = ["model": model, "store": false,
             "background": background, "reasoning": ["effort": depth.effort],
-            "input": prompt, "text": ["format": ["type": "json_schema", "name": "dream_result",
+            "input": localizedPrompt, "text": ["format": ["type": "json_schema", "name": "dream_result",
                                            "strict": true, "schema": schema]]]
         if !background { body["max_output_tokens"] = 1800 }
         if web {

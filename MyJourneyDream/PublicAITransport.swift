@@ -18,6 +18,15 @@ enum PublicAIProvider: String, CaseIterable, Identifiable {
     }
 }
 
+enum PublicAIConsent {
+    static var granted: Bool {
+        UserDefaults.standard.bool(forKey: "publicAIConsent.\(PublicAIProvider.selected.rawValue)")
+    }
+    static func set(_ granted: Bool) {
+        UserDefaults.standard.set(granted, forKey: "publicAIConsent.\(PublicAIProvider.selected.rawValue)")
+    }
+}
+
 enum PublicAITransport {
     static func send(body: [String: Any], key: String, provider: PublicAIProvider = .selected,
                      timeout: TimeInterval = 60) async throws -> (Data, URLResponse) {

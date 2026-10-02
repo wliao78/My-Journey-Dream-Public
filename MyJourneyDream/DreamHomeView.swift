@@ -105,7 +105,10 @@ struct DreamHomeView: View {
             }
             .sheet(isPresented: $showSettings) { DreamSettingsView(store: store) }
             .onChange(of: showSettings) { _, isPresented in
-                if !isPresented && !loading && store.library.experiences.isEmpty && DreamKeychain.read() != nil {
+                if !isPresented && !loading && DreamKeychain.read() != nil &&
+                    (store.library.experiences.isEmpty || store.library.experiences.allSatisfy({
+                        $0.confidence == String(localized: "通用灵感示例；尚未根据你的要求完成 AI 推荐或实时核对。")
+                    })) {
                     startDiscovery()
                 }
             }
@@ -126,7 +129,10 @@ struct DreamHomeView: View {
                 if DreamKeychain.read() != nil || DreamResearch.isDemoMode {
                     startDiscovery()
                 } else {
-                    status = "设置 API Key 后即可自动获取三个推荐"
+                    if store.library.experiences.isEmpty {
+                        store.library.experiences = DreamResearch.fallbackRecommendations(modes: Set(JourneyMode.allCases))
+                    }
+                    status = String(localized: "演示灵感已显示 · 设置 API Key 后获取实时推荐")
                 }
             }
         }
@@ -297,7 +303,7 @@ struct DreamHomeView: View {
 
     private func emptyCard(mode: JourneyMode) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(mode.rawValue, systemImage: mode.symbol)
+            Label(mode.title, systemImage: mode.symbol)
                 .font(.caption.bold()).foregroundStyle(DreamPalette.accent)
             Text(mode.question).font(.headline)
             Text("等待下一段旅程")
@@ -400,7 +406,7 @@ private struct JourneySkeletonCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Label("\(mode.rawValue)旅程", systemImage: mode.symbol)
+            Label(String(format: NSLocalizedString("%@旅程", comment: "Journey mode card"), mode.title), systemImage: mode.symbol)
                 .font(.caption.bold())
                 .foregroundStyle(DreamPalette.accent)
             skeletonLine(width: 0.62, height: 18)
@@ -431,7 +437,7 @@ private struct ExperienceCard: View {
     var body: some View {
         HStack(spacing: 11) {
             VStack(alignment: .leading, spacing: compact ? 5 : 7) {
-                Label(experience.mode.rawValue, systemImage: experience.mode.symbol)
+                Label(experience.mode.title, systemImage: experience.mode.symbol)
                     .font(.caption.bold())
                     .foregroundStyle(DreamPalette.accent)
                 Text(experience.title)
@@ -556,7 +562,7 @@ private struct ExperienceDetailView: View {
                             .font(.caption.bold()).foregroundStyle(DreamPalette.accent)
                         Picker("研究深度", selection: $thinkingDepth) {
                             ForEach(DreamThinkingDepth.allCases) { depth in
-                                Text(depth.rawValue).tag(depth)
+                                Text(depth.title).tag(depth)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -716,7 +722,7 @@ private struct ExperienceDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .overlay(alignment: .bottomLeading) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label(experience.mode.rawValue, systemImage: experience.mode.symbol)
+                        Label(experience.mode.title, systemImage: experience.mode.symbol)
                             .font(.caption.bold())
                         Text(experience.title)
                             .font(.title2.bold())
@@ -771,6 +777,7 @@ private struct DreamSettingsView: View {
     @State private var saved = false
     @State private var verifying = false
     @State private var verificationMessage: String?
+    @State private var aiConsent = PublicAIConsent.granted
     var body: some View {
         NavigationStack {
             Form {
@@ -782,6 +789,7 @@ private struct DreamSettingsView: View {
                     }
                     .onChange(of: providerID) { _, _ in
                         key = ""
+                        aiConsent = PublicAIConsent.granted
                         saved = false
                         verificationMessage = nil
                     }
@@ -806,6 +814,10 @@ private struct DreamSettingsView: View {
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || verifying)
                     if let verificationMessage { Text(verificationMessage).font(.footnote) }
                     if saved || DreamKeychain.read() != nil { Text("密钥已保存在本机钥匙串") }
+                    Toggle("同意向所选 AI 服务商发送资料", isOn: $aiConsent)
+                        .onChange(of: aiConsent) { _, value in PublicAIConsent.set(value) }
+                    Text("开始研究后，旅行画像、目的地、日期、同行人及输入内容会发送给所选服务商。可随时关闭；关闭后仍可浏览演示灵感。")
+                        .font(.footnote)
                 }
                 Section("旅行画像") {
                     TextField("去过哪里、喜欢什么、体力与预算偏好…", text: $note, axis: .vertical)
