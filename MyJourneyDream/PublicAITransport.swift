@@ -1,6 +1,58 @@
 import Foundation
 import SwiftUI
 
+enum PublicLanguage {
+    static func errorDescription(_ error: Error) -> String {
+        if let network = error as? URLError {
+            switch network.code {
+            case .timedOut: return String(localized: "网络请求超时，请稍后重试。")
+            case .notConnectedToInternet: return String(localized: "当前没有网络连接，请联网后重试。")
+            default: return String(localized: "无法连接到服务，请检查网络后重试。")
+            }
+        }
+        if error is DecodingError { return String(localized: "无法读取返回资料，请重试。") }
+        let message = error.localizedDescription
+        if !isChinese && message.range(of: "[\\p{Han}]", options: .regularExpression) != nil {
+            return String(localized: "请求未能完成，请检查连接和账户设置后重试。")
+        }
+        return message
+    }
+    static var qaScrollBottom: Bool {
+#if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-LocalizationBottom")
+#else
+        false
+#endif
+    }
+    static func weather(_ rawValue: String) -> String {
+        let names = ["blizzard": "暴风雪", "blowingDust": "扬尘", "blowingSnow": "吹雪", "breezy": "微风", "clear": "晴朗", "cloudy": "阴天", "drizzle": "毛毛雨", "flurries": "小阵雪", "foggy": "有雾", "freezingDrizzle": "冻毛毛雨", "freezingRain": "冻雨", "frigid": "严寒", "hail": "冰雹", "haze": "霾", "heavyRain": "大雨", "heavySnow": "大雪", "hot": "炎热", "hurricane": "飓风", "isolatedThunderstorms": "局地雷暴", "mostlyClear": "大部晴朗", "mostlyCloudy": "大部多云", "partlyCloudy": "局部多云", "rain": "雨", "scatteredThunderstorms": "零星雷暴", "sleet": "冰粒", "smoky": "烟雾", "snow": "雪", "strongStorms": "强风暴", "sunFlurries": "晴间阵雪", "sunShowers": "太阳雨", "thunderstorms": "雷暴", "tropicalStorm": "热带风暴", "windy": "大风", "wintryMix": "雨雪混合"]
+        return names[rawValue].map { NSLocalizedString($0, comment: "Weather") } ?? String(localized: "天气暂不可用")
+    }
+    static func demoText(_ value: String) -> String {
+        for language in ["en", "zh-Hans"] {
+            guard let folder = Bundle.main.path(forResource: language, ofType: "lproj"),
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: folder).appendingPathComponent("Localizable.strings")),
+                  let table = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: String] else { continue }
+            if table[value] != nil { return NSLocalizedString(value, comment: "Demo") }
+            if let key = table.first(where: { $0.value == value })?.key { return NSLocalizedString(key, comment: "Demo") }
+        }
+        return value
+    }
+    // Use the app's selected language, not the language of an input query.
+    static var code: String { Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true ? "zh" : "en" }
+    static var isChinese: Bool { code == "zh" }
+    static var locale: Locale {
+        let region = Locale.current.region?.identifier ?? "US"
+        return Locale(identifier: (isChinese ? "zh_Hans_" : "en_") + region)
+    }
+    static var speechLocale: Locale { Locale(identifier: isChinese ? "zh-CN" : "en-US") }
+    static var aiInstruction: String {
+        let language = isChinese ? "Simplified Chinese" : "natural English"
+        return "\nOUTPUT LANGUAGE: Use \(language) for all user-facing prose, labels, warnings, summaries and suggestions, regardless of the input language or earlier language instructions. Preserve original proper names, postal addresses, identifiers, JSON keys and schema enum values. Machine-only search queries must retain their required search language."
+    }
+}
+
+
 enum PublicAIProvider: String, CaseIterable, Identifiable {
     case openAI = "openai"
     case anthropic = "anthropic"
@@ -102,8 +154,8 @@ enum PublicDemo {
 struct PublicDemoSettings: View {
     @AppStorage("publicDemoMode") private var enabled = true
     var body: some View {
-        Toggle("离线演示模式", isOn: $enabled)
-        Text("演示无需网络或密钥。关闭后可使用定位与 AI；需要有效密钥并同意发送资料。")
+        Toggle(String(localized: "离线演示模式"), isOn: $enabled)
+        Text(String(localized: "演示无需网络或密钥。关闭后可使用定位与 AI；需要有效密钥并同意发送资料。"))
             .font(.footnote).foregroundStyle(.secondary)
     }
 }
@@ -123,18 +175,18 @@ struct PublicAIConfigurationView: View {
                     UserDefaults.standard.set(value, forKey: "publicAIModel.\(provider.rawValue)")
                 }
             if provider == .qwen {
-                Picker("服务地域", selection: $qwenRegion) {
-                    Text("中国大陆").tag("cn")
-                    Text("新加坡").tag("sg")
-                    Text("美国").tag("us")
+                Picker(String(localized: "服务地域"), selection: $qwenRegion) {
+                    Text(String(localized: "中国大陆")).tag("cn")
+                    Text(String(localized: "新加坡")).tag("sg")
+                    Text(String(localized: "美国")).tag("us")
                 }
-                Text("密钥必须与所选服务地域一致。")
+                Text(String(localized: "密钥必须与所选服务地域一致。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Text("留空使用默认模型。豆包也可填写已开通的模型或接入点 ID；图片请求会自动使用默认视觉模型，指定模型时请确认其支持图片。")
+            Text(String(localized: "留空使用默认模型。豆包也可填写已开通的模型或接入点 ID；图片请求会自动使用默认视觉模型，指定模型时请确认其支持图片。"))
                 .font(.footnote).foregroundStyle(.secondary)
             if !provider.supportsWebResearch {
-                Text("此接入支持文本与兼容模型的图片功能；暂不支持应用内实时联网核验。")
+                Text(String(localized: "此接入支持文本与兼容模型的图片功能；暂不支持应用内实时联网核验。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -159,6 +211,8 @@ enum PublicAIConsent {
 enum PublicAITransport {
     static func send(body: [String: Any], key: String, provider: PublicAIProvider = .selected,
                      timeout: TimeInterval = 60) async throws -> (Data, URLResponse) {
+        var body = body
+        body["instructions"] = (body["instructions"] as? String ?? "") + PublicLanguage.aiInstruction
         if provider.usesChatCompletions {
             return try await sendChat(body: body, key: key, provider: provider, timeout: timeout)
         }
@@ -171,7 +225,7 @@ enum PublicAITransport {
                })
            }) {
             throw NSError(domain: "PublicAITransport", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "所选服务商暂不支持 DOC/DOCX 直传；请转为 PDF 或使用 OpenAI。"])
+                          userInfo: [NSLocalizedDescriptionKey: String(localized: "所选服务商暂不支持 DOC/DOCX 直传；请转为 PDF 或使用 OpenAI。")])
         }
         let request: URLRequest
         switch provider {
@@ -356,8 +410,7 @@ enum PublicAITransport {
            let schemaText = String(data: data, encoding: .utf8) {
             text += "\nReturn only a JSON object matching this schema: \(schemaText)"
         }
-        text += Locale.current.language.languageCode?.identifier == "zh"
-            ? "\n面向用户的文字请使用中文。" : "\nUse English for user-facing text."
+        text += PublicLanguage.aiInstruction
         return text
     }
 

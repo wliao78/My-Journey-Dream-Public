@@ -92,10 +92,11 @@ struct JourneyExperience: Codable, Identifiable {
     var highlights: [String]?
     var photos: [JourneyPhoto]? = nil
     var researchedAt = Date()
+    var isDemo: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
         case mode, title, region, season, duration, signatureExperience, whyNow,
-             whatYouLove, whatToAccept, routeOrBase, routePlan, longStayValue, confidence, evidence, highlights, photos
+             whatYouLove, whatToAccept, routeOrBase, routePlan, longStayValue, confidence, evidence, highlights, photos, isDemo
     }
 }
 
@@ -145,7 +146,10 @@ final class DreamStore {
         library.favorites = favorites
     }
 
-    init() {
+    private var isPreview = false
+
+    init(previewLibrary: DreamLibrary? = nil) {
+        if let previewLibrary { library = previewLibrary; isPreview = true; return }
         let url = Self.storageURL
         library = (try? Data(contentsOf: url)).flatMap {
             try? JSONDecoder().decode(DreamLibrary.self, from: $0)
@@ -158,11 +162,43 @@ final class DreamStore {
     }
 
     private func save() {
+        guard !isPreview else { return }
         let url = Self.storageURL
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(library) {
             try? data.write(to: url, options: .atomic)
         }
+    }
+}
+extension JourneyExperience {
+    var localizedDemo: JourneyExperience {
+        let builtInTitles = ["背包慢游马德拉", "Backpack through Madeira", "城堡、荒野与威士忌之路", "Castles, wilderness, and whisky roads", "住进西班牙南部", "Live in southern Spain", "云上山脊与雾森林", "Cloud ridges and misty forests"]
+        guard isDemo == true || (evidence.isEmpty && builtInTitles.contains(title)) else { return self }
+        var copy = self
+        copy.title = PublicLanguage.demoText(title)
+        copy.region = PublicLanguage.demoText(region)
+        copy.season = PublicLanguage.demoText(season)
+        copy.duration = PublicLanguage.demoText(duration)
+        copy.signatureExperience = PublicLanguage.demoText(signatureExperience)
+        copy.whyNow = PublicLanguage.demoText(whyNow)
+        copy.whatYouLove = PublicLanguage.demoText(whatYouLove)
+        copy.whatToAccept = PublicLanguage.demoText(whatToAccept)
+        copy.routeOrBase = PublicLanguage.demoText(routeOrBase)
+        copy.longStayValue = PublicLanguage.demoText(longStayValue)
+        copy.confidence = PublicLanguage.demoText(confidence)
+        copy.highlights = highlights?.map(PublicLanguage.demoText)
+        copy.routePlan = routePlan?.map { stage in
+            var value = stage
+            value.day = PublicLanguage.demoText(stage.day)
+            value.place = PublicLanguage.demoText(stage.place)
+            value.experience = PublicLanguage.demoText(stage.experience)
+            value.transfer = PublicLanguage.demoText(stage.transfer)
+            value.landmarks = stage.landmarks.map(PublicLanguage.demoText)
+            value.timing = stage.timing.map(PublicLanguage.demoText)
+            value.alternative = stage.alternative.map(PublicLanguage.demoText)
+            return value
+        }
+        return copy
     }
 }

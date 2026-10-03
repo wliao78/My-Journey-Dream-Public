@@ -6,7 +6,13 @@ struct MyJourneyDreamApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DreamHomeView(store: store)
+            Group {
+#if DEBUG
+                if let preview = PublicLocalizationQA.screen { preview } else { DreamHomeView(store: store) }
+#else
+                DreamHomeView(store: store)
+#endif
+            }.environment(\.locale, PublicLanguage.locale)
                 .preferredColorScheme(.dark)
         }
     }

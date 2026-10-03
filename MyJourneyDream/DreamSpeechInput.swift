@@ -9,7 +9,7 @@ final class DreamSpeechInput: ObservableObject {
     @Published var errorMessage: String?
 
     private let engine = AVAudioEngine()
-    private let recognizer = SFSpeechRecognizer(locale: .current)
+    private let recognizer = SFSpeechRecognizer(locale: PublicLanguage.speechLocale)
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
 
@@ -21,11 +21,11 @@ final class DreamSpeechInput: ObservableObject {
             }
         }
         guard authorized, await AVAudioApplication.requestRecordPermission() else {
-            errorMessage = "请允许麦克风和语音识别，或使用文字输入。"
+            errorMessage = String(localized: "请允许麦克风和语音识别，或使用文字输入。")
             return
         }
         guard let recognizer, recognizer.isAvailable else {
-            errorMessage = "当前语音识别不可用，请使用文字输入。"
+            errorMessage = String(localized: "当前语音识别不可用，请使用文字输入。")
             return
         }
         do {
@@ -59,7 +59,7 @@ final class DreamSpeechInput: ObservableObject {
                 }
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = PublicLanguage.errorDescription(error)
             stop()
         }
     }

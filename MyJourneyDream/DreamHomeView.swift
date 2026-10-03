@@ -55,15 +55,15 @@ struct DreamHomeView: View {
                             .foregroundStyle(DreamPalette.muted)
                         Spacer(minLength: 0)
                         if loading {
-                            Button("停止") { stopResearch() }
+                            Button(String(localized: "停止")) { stopResearch() }
                                 .font(.caption.weight(.semibold))
                         }
                     }
                     HStack {
-                        Text("此刻的灵感")
+                        Text(String(localized: "此刻的灵感"))
                             .font(.system(size: compact ? 19 : 22, weight: .bold, design: .rounded))
                         Spacer()
-                        Button("换一组", systemImage: "arrow.clockwise") { startDiscovery() }
+                        Button(String(localized: "换一组"), systemImage: "arrow.clockwise") { startDiscovery() }
                             .font(.caption.weight(.semibold))
                             .disabled(loading)
                     }
@@ -71,7 +71,7 @@ struct DreamHomeView: View {
                         Group {
                             if loading && updatingModes.contains(mode) {
                                 JourneySkeletonCard(mode: mode)
-                            } else if let experience = store.library.experiences.first(where: { $0.mode == mode }) {
+                            } else if let experience = store.library.experiences.first(where: { $0.mode == mode })?.localizedDemo {
                                 NavigationLink {
                                     ExperienceDetailView(store: store, experienceID: experience.id,
                                                          request: activeRequest)
@@ -100,7 +100,7 @@ struct DreamHomeView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("完成") { dismissKeyboard() }
+                    Button(String(localized: "完成")) { dismissKeyboard() }
                 }
             }
             .sheet(isPresented: $showSettings) { DreamSettingsView(store: store) }
@@ -132,7 +132,7 @@ struct DreamHomeView: View {
                                 request: String? = nil) {
         guard !loading else { return }
         guard DreamKeychain.read() != nil || DreamResearch.isDemoMode else {
-            status = "请先在设置中填写并验证 API Key。"
+            status = String(localized: "请先在设置中填写并验证 API Key。")
             showSettings = true
             return
         }
@@ -143,7 +143,7 @@ struct DreamHomeView: View {
         activeRequest = discoveryRequest
         updatingModes = modes
         loading = true
-        status = modes.count == 3 ? "正在寻找你的下一段旅程…" : "正在更新\(modes.map(\.rawValue).sorted().joined(separator: "、"))方案…"
+        status = modes.count == 3 ? String(localized: "正在寻找你的下一段旅程…") : String(format: NSLocalizedString("正在更新%@方案…", comment: ""), String(describing: modes.map(\.title).sorted().joined(separator: "、")))
         activeResearchTask = Task { await discover(tracker: tracker, modes: modes, request: discoveryRequest) }
     }
 
@@ -203,15 +203,15 @@ struct DreamHomeView: View {
         activeResearchTask?.cancel()
         Task { await DreamResearch.cancel(tracker) }
         loading = false
-        status = "已停止研究；已完成的推荐会保留。"
+        status = String(localized: "已停止研究；已完成的推荐会保留。")
     }
 
     private func header(compact: Bool) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("我的旅程 — 梦游")
+                Text(String(localized: "我的旅程 — 梦游"))
                     .font(.system(size: compact ? 25 : 29, weight: .bold, design: .rounded))
-                Text("下一次，去经历什么？")
+                Text(String(localized: "下一次，去经历什么？"))
                     .font(.subheadline).foregroundStyle(.white.opacity(0.62))
             }
             Spacer()
@@ -221,21 +221,21 @@ struct DreamHomeView: View {
                     .frame(width: 38, height: 38)
                     .background(DreamPalette.accent.opacity(0.12), in: Circle())
             }
-            .accessibilityLabel("收藏的旅程")
+            .accessibilityLabel(String(localized: "收藏的旅程"))
             Button { showJourneys = true } label: {
                 Image(systemName: "checklist")
                     .font(.headline)
                     .frame(width: 38, height: 38)
             .background(DreamPalette.accent.opacity(0.12), in: Circle())
             }
-            .accessibilityLabel("已确定旅行与准备")
+            .accessibilityLabel(String(localized: "已确定旅行与准备"))
             Button { showSettings = true } label: {
                 Image(systemName: "slider.horizontal.3")
                     .font(.headline)
                     .frame(width: 38, height: 38)
                     .background(DreamPalette.accent.opacity(0.12), in: Circle())
             }
-            .accessibilityLabel("设置与旅行画像")
+            .accessibilityLabel(String(localized: "设置与旅行画像"))
         }
     }
 
@@ -246,7 +246,7 @@ struct DreamHomeView: View {
                 .padding(.bottom, 8)
             ZStack(alignment: .topLeading) {
                 if query.isEmpty {
-                    Text("想去哪、何时去，或想怎样旅行…")
+                    Text(String(localized: "想去哪、何时去，或想怎样旅行…"))
                         .foregroundStyle(DreamPalette.muted.opacity(0.65))
                         .padding(.top, 7)
                         .padding(.leading, 5)
@@ -256,7 +256,7 @@ struct DreamHomeView: View {
                     .scrollContentBackground(.hidden)
                     .frame(height: draftEditorHeight)
                     .focused($inputFocused)
-                    .accessibilityLabel("旅行要求草稿，可滚动查看完整内容")
+                    .accessibilityLabel(String(localized: "旅行要求草稿，可滚动查看完整内容"))
             }
             Button {
                 inputFocused = false
@@ -266,12 +266,12 @@ struct DreamHomeView: View {
                 Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.fill")
                     .foregroundStyle(speech.isRecording ? .red : DreamPalette.accent)
             }
-            .accessibilityLabel(speech.isRecording ? "停止语音输入" : "开始语音输入")
+            .accessibilityLabel(speech.isRecording ? String(localized: "停止语音输入") : String(localized: "开始语音输入"))
             Button { startSubmission() } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.title3)
             }
             .disabled(loading || submitting || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .accessibilityLabel("确认发送旅行要求")
+            .accessibilityLabel(String(localized: "确认发送旅行要求"))
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 12)
@@ -296,7 +296,7 @@ struct DreamHomeView: View {
             Label(mode.title, systemImage: mode.symbol)
                 .font(.caption.bold()).foregroundStyle(DreamPalette.accent)
             Text(mode.question).font(.headline)
-            Text("等待下一段旅程")
+            Text(String(localized: "等待下一段旅程"))
                 .font(.caption).foregroundStyle(DreamPalette.muted)
             Spacer(minLength: 0)
         }
@@ -318,8 +318,8 @@ struct DreamHomeView: View {
             }
             store.library.lastDiscoveryAt = .now
             loading = false
-            status = modes.count == 3 ? "3 个备选方案已就绪 · 点进感兴趣的方案继续深度研究"
-                : "已更新\(modes.map(\.rawValue).sorted().joined(separator: "、"))方案 · 其他卡片保持不变"
+            status = modes.count == 3 ? String(localized: "3 个备选方案已就绪 · 点进感兴趣的方案继续深度研究")
+                : String(format: NSLocalizedString("已更新%@方案 · 其他卡片保持不变", comment: ""), String(describing: modes.map(\.title).sorted().joined(separator: "、")))
             for experience in result {
                 Task {
                     let photos = await DreamPhotos.search(for: experience)
@@ -339,9 +339,9 @@ struct DreamHomeView: View {
                         store.library.experiences.first(where: { $0.mode == mode })
                             ?? fallback.first(where: { $0.mode == mode })
                     }
-                    status = "连接超时 · 已显示通用灵感，可换一组重试"
+                    status = String(localized: "连接超时 · 已显示通用灵感，可换一组重试")
                 } else {
-                    status = "更新未完成，原有推荐已保留 · 请重试"
+                    status = String(localized: "更新未完成，原有推荐已保留 · 请重试")
                 }
             }
             if researchTracker === tracker { loading = false }
@@ -351,7 +351,7 @@ struct DreamHomeView: View {
     private func submitInput(_ submitted: String, tracker: DreamResearchTracker) async {
         speech.stop()
         inputFocused = false
-        status = "正在理解你的要求…"
+        status = String(localized: "正在理解你的要求…")
         do {
             let decision = try await DreamResearch.classify(submitted, depth: thinkingDepth,
                                                              tracker: tracker)
@@ -360,7 +360,7 @@ struct DreamHomeView: View {
             loading = false
             if let journey = decision.confirmedJourney {
                 proposedJourney = journey
-                status = "已识别为确定旅行，请核对地点和日期。"
+                status = String(localized: "已识别为确定旅行，请核对地点和日期。")
             } else if !decision.clarification.isEmpty {
                 status = decision.clarification
             } else {
@@ -371,7 +371,7 @@ struct DreamHomeView: View {
             if researchTracker === tracker {
                 loading = false
                 if !Task.isCancelled && !(error is CancellationError) {
-                    status = error.localizedDescription
+                    status = PublicLanguage.errorDescription(error)
                 }
             }
         }
@@ -383,9 +383,9 @@ struct DreamHomeView: View {
                 let steps = try await DreamResearch.prepare(journey)
                 guard let index = store.library.journeys.firstIndex(where: { $0.id == journey.id }) else { return }
                 store.library.journeys[index].preparation = steps
-                status = "已为确定旅行生成准备时间线。"
+                status = String(localized: "已为确定旅行生成准备时间线。")
             } catch {
-                status = "旅行已保存；准备时间线暂未生成：\(error.localizedDescription)"
+                status = String(format: NSLocalizedString("旅行已保存；准备时间线暂未生成：%@", comment: ""), String(describing: PublicLanguage.errorDescription(error)))
             }
         }
     }
@@ -408,7 +408,7 @@ private struct JourneySkeletonCard: View {
         .padding(14)
         .background(DreamPalette.card, in: RoundedRectangle(cornerRadius: 18))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("正在生成\(mode.rawValue)旅程推荐")
+        .accessibilityLabel(String(format: NSLocalizedString("正在生成%@旅程推荐", comment: ""), String(describing: mode.title)))
     }
 
     private func skeletonLine(width: CGFloat, height: CGFloat) -> some View {
@@ -460,7 +460,7 @@ private struct ExperienceCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(alignment: .bottomTrailing) {
                     if experience.photos?.first == nil {
-                        Text("灵感示意")
+                        Text(String(localized: "灵感示意"))
                             .font(.system(size: 9))
                             .padding(4)
                             .background(.black.opacity(0.5), in: Capsule())
@@ -501,7 +501,7 @@ private struct JourneyPhotoView: View {
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()
         }
-        .accessibilityLabel(photo == nil ? "\(mode.rawValue)灵感示意图" : "\(mode.rawValue)目的地照片")
+        .accessibilityLabel(photo == nil ? String(format: NSLocalizedString("%@灵感示意图", comment: ""), String(describing: mode.title)) : String(format: NSLocalizedString("%@目的地照片", comment: ""), String(describing: mode.title)))
     }
 
     private var fallback: some View {
@@ -519,8 +519,8 @@ private struct ExperienceDetailView: View {
     @State private var didStartInitialResearch = false
 
     private var experience: JourneyExperience? {
-        store.library.experiences.first(where: { $0.id == experienceID })
-            ?? store.favoriteExperiences.first(where: { $0.id == experienceID })
+        (store.library.experiences.first(where: { $0.id == experienceID })
+            ?? store.favoriteExperiences.first(where: { $0.id == experienceID }))?.localizedDemo
     }
 
     var body: some View {
@@ -538,30 +538,33 @@ private struct ExperienceDetailView: View {
                                 .frame(width: 38, height: 38)
                                 .background(.black.opacity(0.45), in: Circle())
                         }
-                        .accessibilityLabel(store.isFavorite(experience.id) ? "取消收藏" : "收藏旅程")
+                        .accessibilityLabel(store.isFavorite(experience.id) ? String(localized: "取消收藏") : String(localized: "收藏旅程"))
                         .padding(10)
                     }
                 if researching {
-                    Label("正在\(thinkingDepth.rawValue)研究路线、季节与实用信息…", systemImage: "sparkles")
+                    Label(String(format: NSLocalizedString("正在%@研究路线、季节与实用信息…", comment: ""), String(describing: thinkingDepth.title)), systemImage: "sparkles")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(DreamPalette.accent)
                     ProgressView().frame(maxWidth: .infinity, alignment: .leading)
+                } else if PublicDemo.enabled {
+                    Text(PublicDemo.notice)
+                        .font(.caption).foregroundStyle(DreamPalette.accent)
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(experience.evidence.isEmpty ? "快速研究暂未完成，可重试或选择其他档位" : "路线已就绪，可选择档位重新研究")
+                        Text(experience.evidence.isEmpty ? String(localized: "快速研究暂未完成，可重试或选择其他档位") : String(localized: "路线已就绪，可选择档位重新研究"))
                             .font(.caption.bold()).foregroundStyle(DreamPalette.accent)
-                        Picker("研究深度", selection: $thinkingDepth) {
+                        Picker(String(localized: "研究深度"), selection: $thinkingDepth) {
                             ForEach(DreamThinkingDepth.allCases) { depth in
                                 Text(depth.title).tag(depth)
                             }
                         }
                         .pickerStyle(.segmented)
                         if let researchError {
-                            Text("备选方案已保留，深度研究暂未完成：\(researchError)")
+                            Text(String(format: NSLocalizedString("备选方案已保留，深度研究暂未完成：%@", comment: ""), String(describing: researchError)))
                                 .font(.footnote).foregroundStyle(.orange)
                         }
                         HStack {
-                            Button(experience.evidence.isEmpty ? "重新获取路线" : "按所选档位重新研究",
+                            Button(experience.evidence.isEmpty ? String(localized: "重新获取路线") : String(localized: "按所选档位重新研究"),
                                    systemImage: "sparkles") {
                                 Task { await research() }
                             }
@@ -575,20 +578,20 @@ private struct ExperienceDetailView: View {
                                     .frame(width: 32, height: 32)
                             }
                             .buttonStyle(.borderedProminent)
-                            .accessibilityLabel(store.isFavorite(experience.id) ? "取消收藏" : "收藏旅程")
+                            .accessibilityLabel(store.isFavorite(experience.id) ? String(localized: "取消收藏") : String(localized: "收藏旅程"))
                         }
                     }
                     .padding(14)
                     .background(DreamPalette.card, in: RoundedRectangle(cornerRadius: 15))
                 }
                 routeSection(experience)
-                detail("为什么现在", experience.whyNow)
-                detail("核心体验", experience.signatureExperience)
-                detail("你会喜欢", experience.whatYouLove)
-                detail("需要接受 · 反证检查", experience.whatToAccept)
-                if experience.mode == .slowStay { detail("长住性价比", experience.longStayValue) }
-                detail("可信度与缺口", experience.confidence)
-                Text("依据").font(.headline)
+                detail(String(localized: "为什么现在"), experience.whyNow)
+                detail(String(localized: "核心体验"), experience.signatureExperience)
+                detail(String(localized: "你会喜欢"), experience.whatYouLove)
+                detail(String(localized: "需要接受 · 反证检查"), experience.whatToAccept)
+                if experience.mode == .slowStay { detail(String(localized: "长住性价比"), experience.longStayValue) }
+                detail(String(localized: "可信度与缺口"), experience.confidence)
+                Text(String(localized: "依据")).font(.headline)
                 ForEach(experience.evidence) { evidence in
                     if let url = URL(string: evidence.url), url.scheme == "https" {
                         Link(destination: url) {
@@ -597,15 +600,15 @@ private struct ExperienceDetailView: View {
                         }
                     }
                 }
-                Text("资料会变化；出行前请重新核对官方安全、交通、季节和预约信息。")
+                Text(String(localized: "资料会变化；出行前请重新核对官方安全、交通、季节和预约信息。"))
                     .font(.footnote).foregroundStyle(.white.opacity(0.55))
                     }
                     .padding(20)
-                }
+                }.defaultScrollAnchor(PublicLanguage.qaScrollBottom ? .bottom : .top)
             } else {
-                ContentUnavailableView("方案不存在", systemImage: "questionmark.folder")
+                ContentUnavailableView(String(localized: "方案不存在"), systemImage: "questionmark.folder")
             }
-        }
+        }.defaultScrollAnchor(PublicLanguage.qaScrollBottom ? .bottom : .top)
         .background(DreamPalette.backdrop.ignoresSafeArea())
         .foregroundStyle(DreamPalette.ink)
         .tint(DreamPalette.accent)
@@ -638,14 +641,14 @@ private struct ExperienceDetailView: View {
         } catch where error is CancellationError {
             return
         } catch {
-            researchError = error.localizedDescription
+            researchError = PublicLanguage.errorDescription(error)
         }
     }
 
     private func detail(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title).font(.caption.bold()).foregroundStyle(DreamPalette.accent)
-            Text(value.isEmpty ? "暂无可靠资料" : value)
+            Text(value.isEmpty ? String(localized: "暂无可靠资料") : value)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
@@ -654,7 +657,7 @@ private struct ExperienceDetailView: View {
 
     private func routeSection(_ experience: JourneyExperience) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(experience.mode == .slowStay ? "旅居安排" : "详细路线", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+            Label(experience.mode == .slowStay ? String(localized: "旅居安排") : String(localized: "详细路线"), systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                 .font(.title3.bold())
                 .foregroundStyle(DreamPalette.accent)
             if let plan = experience.routePlan, !plan.isEmpty {
@@ -695,7 +698,7 @@ private struct ExperienceDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
-                Text(researching ? "正在整理每天的地点、体验与转场…" : "路线暂未生成，可在下方重试。")
+                Text(researching ? String(localized: "正在整理每天的地点、体验与转场…") : String(localized: "路线暂未生成，可在下方重试。"))
                     .font(.subheadline)
                     .foregroundStyle(DreamPalette.muted)
             }
@@ -735,7 +738,7 @@ private struct ExperienceDetailView: View {
                 }
             }
             if let photos = experience.photos, !photos.isEmpty {
-                DisclosureGroup("图片来源与授权 · \(photos.count) 张") {
+                DisclosureGroup(String(format: NSLocalizedString("图片来源与授权 · %@ 张", comment: ""), String(describing: photos.count))) {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(photos) { photo in
                             if let source = URL(string: photo.sourceURL) {
@@ -749,7 +752,7 @@ private struct ExperienceDetailView: View {
                 .font(.caption2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text("图片为灵感示意；目的地照片载入后自动更新。")
+                Text(String(localized: "图片为灵感示意；目的地照片载入后自动更新。"))
                     .font(.caption2)
                     .foregroundStyle(DreamPalette.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -771,8 +774,8 @@ private struct DreamSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("AI 服务") {
-                    Picker("服务商", selection: $providerID) {
+                Section(String(localized: "AI 服务")) {
+                    Picker(String(localized: "服务商"), selection: $providerID) {
                         ForEach(PublicAIProvider.allCases) { provider in
                             Text(provider.title).tag(provider.rawValue)
                         }
@@ -786,7 +789,7 @@ private struct DreamSettingsView: View {
                     SecureField("API Key", text: $key)
                         .textInputAutocapitalization(.never)
                     PublicAIConfigurationView(provider: PublicAIProvider.selected)
-                    Button(verifying ? "正在验证…" : "验证并保存 API Key") {
+                    Button(verifying ? String(localized: "正在验证…") : String(localized: "验证并保存 API Key")) {
                         verifying = true
                         verificationMessage = nil
                         Task {
@@ -795,38 +798,38 @@ private struct DreamSettingsView: View {
                                 DreamKeychain.save(key.trimmingCharacters(in: .whitespacesAndNewlines))
                                 key = ""
                                 saved = true
-                                verificationMessage = "验证成功，已保存到本机钥匙串。"
+                                verificationMessage = String(localized: "验证成功，已保存到本机钥匙串。")
                             } catch {
-                                verificationMessage = error.localizedDescription
+                                verificationMessage = PublicLanguage.errorDescription(error)
                             }
                             verifying = false
                         }
                     }
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || verifying)
                     if let verificationMessage { Text(verificationMessage).font(.footnote) }
-                    if saved || DreamKeychain.read() != nil { Text("密钥已保存在本机钥匙串") }
-                    Toggle("同意向所选 AI 服务商发送资料", isOn: $aiConsent)
+                    if saved || DreamKeychain.read() != nil { Text(String(localized: "密钥已保存在本机钥匙串")) }
+                    Toggle(String(localized: "同意向所选 AI 服务商发送资料"), isOn: $aiConsent)
                         .onChange(of: aiConsent) { _, value in PublicAIConsent.set(value) }
-                    Text("开始研究后，旅行画像、目的地、日期、同行人及输入内容会发送给所选服务商。可随时关闭；关闭后仍可浏览演示灵感。")
+                    Text(String(localized: "开始研究后，旅行画像、目的地、日期、同行人及输入内容会发送给所选服务商。可随时关闭；关闭后仍可浏览演示灵感。"))
                         .font(.footnote)
                 }
-                Section("旅行画像") {
-                    TextField("去过哪里、喜欢什么、体力与预算偏好…", text: $note, axis: .vertical)
+                Section(String(localized: "旅行画像")) {
+                    TextField(String(localized: "去过哪里、喜欢什么、体力与预算偏好…"), text: $note, axis: .vertical)
                         .lineLimit(5...10)
-                    Text("画像仅保存在本机；发起研究时会作为推荐条件发送给 AI。")
+                    Text(String(localized: "画像仅保存在本机；发起研究时会作为推荐条件发送给 AI。"))
                         .font(.footnote)
                 }
-                Section("隐私与支持") {
-                    Link("隐私政策", destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#privacy-" + (Locale.current.language.languageCode?.identifier == "zh" ? "zh" : "en"))!)
-                    Link("使用支持", destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#support")!)
-                    Link("联系开发者", destination: URL(string: "mailto:tinyworm@gmail.com")!)
+                Section(String(localized: "隐私与支持")) {
+                    Link("隐私政策", destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#privacy-" + (PublicLanguage.isChinese ? "zh" : "en"))!)
+                    Link(String(localized: "使用支持"), destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#support")!)
+                    Link(String(localized: "联系开发者"), destination: URL(string: "mailto:tinyworm@gmail.com")!)
                 }
             }
             .scrollContentBackground(.hidden)
             .background(DreamPalette.backdrop.ignoresSafeArea())
             .tint(DreamPalette.accent)
-            .navigationTitle("设置")
-            .toolbar { Button("完成") { store.library.notes = note; dismiss() } }
+            .navigationTitle(String(localized: "设置"))
+            .toolbar { Button(String(localized: "完成")) { store.library.notes = note; dismiss() } }
             .onAppear { note = store.library.notes }
         }
     }
@@ -856,20 +859,20 @@ private struct NewJourneyView: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("旅行名称", text: $title)
-                TextField("地点 / 地区", text: $destination)
-                DatePicker("开始", selection: $start, displayedComponents: .date)
-                DatePicker("结束", selection: $end, in: start..., displayedComponents: .date)
-                TextField("同行人（可留空）", text: $companions)
+                TextField(String(localized: "旅行名称"), text: $title)
+                TextField(String(localized: "地点 / 地区"), text: $destination)
+                DatePicker(String(localized: "开始"), selection: $start, displayedComponents: .date)
+                DatePicker(String(localized: "结束"), selection: $end, in: start..., displayedComponents: .date)
+                TextField(String(localized: "同行人（可留空）"), text: $companions)
             }
             .scrollContentBackground(.hidden)
             .background(DreamPalette.backdrop.ignoresSafeArea())
             .tint(DreamPalette.accent)
-            .navigationTitle("已确定的旅行")
+            .navigationTitle(String(localized: "已确定的旅行"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(String(localized: "取消")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("加入") {
+                    Button(String(localized: "加入")) {
                         let journey = ConfirmedJourney(title: title,
                             destination: destination, start: start, end: end, companions: companions)
                         store.library.journeys.append(journey)
@@ -891,10 +894,10 @@ private struct FavoriteJourneysView: View {
         NavigationStack {
             List {
                 if store.favoriteExperiences.isEmpty {
-                    ContentUnavailableView("还没有收藏的旅程", systemImage: "heart",
-                                           description: Text("打开感兴趣的方案，点右上角爱心收藏。"))
+                    ContentUnavailableView(String(localized: "还没有收藏的旅程"), systemImage: "heart",
+                                           description: Text(String(localized: "打开感兴趣的方案，点右上角爱心收藏。")))
                 }
-                ForEach(store.favoriteExperiences) { experience in
+                ForEach(store.favoriteExperiences.map(\.localizedDemo)) { experience in
                     NavigationLink {
                         ExperienceDetailView(store: store, experienceID: experience.id, request: "")
                     } label: {
@@ -904,7 +907,7 @@ private struct FavoriteJourneysView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 9))
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(experience.title).font(.headline)
-                                Text("\(experience.mode.rawValue) · \(experience.region)")
+                                Text("\(experience.mode.title) · \(experience.region)")
                                     .font(.caption).foregroundStyle(DreamPalette.muted)
                             }
                         }
@@ -916,8 +919,8 @@ private struct FavoriteJourneysView: View {
             .background(DreamPalette.backdrop.ignoresSafeArea())
             .foregroundStyle(DreamPalette.ink)
             .tint(DreamPalette.accent)
-            .navigationTitle("收藏的旅程")
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
+            .navigationTitle(String(localized: "收藏的旅程"))
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(String(localized: "完成")) { dismiss() } } }
         }
     }
 }
@@ -931,8 +934,8 @@ private struct JourneyCollectionView: View {
         NavigationStack {
             List {
                 if store.library.journeys.isEmpty {
-                    ContentUnavailableView("还没有已确定旅行", systemImage: "suitcase",
-                                           description: Text("在首页输入地点和日期，或手动添加。"))
+                    ContentUnavailableView(String(localized: "还没有已确定旅行"), systemImage: "suitcase",
+                                           description: Text(String(localized: "在首页输入地点和日期，或手动添加。")))
                 }
                 ForEach(store.library.journeys) { journey in
                     NavigationLink {
@@ -949,12 +952,12 @@ private struct JourneyCollectionView: View {
             .scrollContentBackground(.hidden)
             .background(DreamPalette.backdrop.ignoresSafeArea())
             .tint(DreamPalette.accent)
-            .navigationTitle("已确定旅行")
+            .navigationTitle(String(localized: "已确定旅行"))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("添加", systemImage: "plus") { showNewJourney = true }
+                    Button(String(localized: "添加"), systemImage: "plus") { showNewJourney = true }
                 }
-                ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .topBarTrailing) { Button(String(localized: "完成")) { dismiss() } }
             }
             .sheet(isPresented: $showNewJourney) { NewJourneyView(store: store) }
         }
@@ -974,7 +977,7 @@ private struct PreparationView: View {
                     Text(store.library.journeys[index].title).font(.largeTitle.bold())
                     Text("\(store.library.journeys[index].destination) · \(store.library.journeys[index].start.formatted(date: .abbreviated, time: .omitted))")
                         .foregroundStyle(.white.opacity(0.65))
-                    Button(loading ? "正在研究…" : "生成准备时间线", systemImage: "sparkles") {
+                    Button(loading ? String(localized: "正在研究…") : String(localized: "生成准备时间线"), systemImage: "sparkles") {
                         Task { await prepare() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -992,7 +995,7 @@ private struct PreparationView: View {
                             }
                             Text(step.rationale).font(.caption).foregroundStyle(.white.opacity(0.7))
                             if let url = URL(string: step.sourceURL), url.scheme == "https" {
-                                Link("核对来源", destination: url).font(.caption)
+                                Link(String(localized: "核对来源"), destination: url).font(.caption)
                             }
                         }
                         .padding(14)
@@ -1015,9 +1018,35 @@ private struct PreparationView: View {
             let steps = try await DreamResearch.prepare(trip)
             guard let index = store.library.journeys.firstIndex(where: { $0.id == journeyID }) else { return }
             store.library.journeys[index].preparation = steps
-            message = "请逐项核对；尚未核实的事项按提示自行确认。"
+            message = String(localized: "请逐项核对；尚未核实的事项按提示自行确认。")
         } catch {
-            message = error.localizedDescription
+            message = PublicLanguage.errorDescription(error)
         }
     }
 }
+#if DEBUG
+@MainActor
+enum PublicLocalizationQA {
+    static var screen: AnyView? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-LocalizationQA"), args.indices.contains(index + 1) else { return nil }
+        let route = args[index + 1]
+        let experiences = DreamResearch.fallbackRecommendations(modes: Set(JourneyMode.allCases))
+        let trip = ConfirmedJourney(title: "Demo trip", destination: "Paris", start: .now,
+            end: .now.addingTimeInterval(604800), companions: "")
+        let library = DreamLibrary(experiences: experiences, favorites: [experiences[0]], journeys: [trip])
+        let store = DreamStore(previewLibrary: library)
+        switch route {
+        case "settings": return AnyView(DreamSettingsView(store: store))
+        case "new-trip": return AnyView(NewJourneyView(store: store))
+        case "favorites": return AnyView(FavoriteJourneysView(store: store))
+        case "journeys": return AnyView(JourneyCollectionView(store: store))
+        case "preparation": return AnyView(NavigationStack { PreparationView(store: store, journeyID: trip.id) })
+        default:
+            let mode: JourneyMode = route == "road" ? .roadTrip : route == "stay" ? .slowStay : .backpack
+            let item = experiences.first { $0.mode == mode }!
+            return AnyView(NavigationStack { ExperienceDetailView(store: store, experienceID: item.id, request: "") })
+        }
+    }
+}
+#endif

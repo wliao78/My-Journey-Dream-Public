@@ -1,0 +1,11 @@
+Version: 1.0 (3)
+Apple app ID: 6818731705
+Status verified on 2026-10-03: Waiting for Review
+Submission ID: 02c6eb5c-74d4-4464-a092-334d72d4fa8f
+English store name: My Journey Dream
+Simplified Chinese store name: 我在旅途-梦游
+Pricing: Free
+Availability: All 175 countries or regions, subject to Apple and local requirements
+Release: Automatically after App Review approval
+Store descriptions and screenshots: English (U.S.) and Simplified Chinese
+Note: Submitted for review; not yet approved or released.

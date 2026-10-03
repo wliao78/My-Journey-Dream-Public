@@ -45,11 +45,11 @@ enum DreamResearchError: LocalizedError {
     case missingKey, invalidKey, invalidResponse, noVerifiedResults, researchTimedOut
     var errorDescription: String? {
         switch self {
-        case .missingKey: "请先在设置中填写 API Key。"
-        case .invalidKey: "API Key 无效，或此密钥无法使用当前模型。"
-        case .invalidResponse: "研究结果暂时无法读取，请稍后重试。"
-        case .noVerifiedResults: "这次没有找到足够可核对的来源，请换个时间或条件。"
-        case .researchTimedOut: "研究时间较长，这次未能完成。请稍后重试；已有推荐会保留。"
+        case .missingKey: String(localized: "请先在设置中填写 API Key。")
+        case .invalidKey: String(localized: "API Key 无效，或此密钥无法使用当前模型。")
+        case .invalidResponse: String(localized: "研究结果暂时无法读取，请稍后重试。")
+        case .noVerifiedResults: String(localized: "这次没有找到足够可核对的来源，请换个时间或条件。")
+        case .researchTimedOut: String(localized: "研究时间较长，这次未能完成。请稍后重试；已有推荐会保留。")
         }
     }
 }
@@ -132,7 +132,7 @@ enum DreamResearch {
         guard (200...299).contains(http.statusCode) else {
             if http.statusCode == 401 || http.statusCode == 403 { throw DreamResearchError.invalidKey }
             throw NSError(domain: "DreamResearch", code: http.statusCode,
-                          userInfo: [NSLocalizedDescriptionKey: "验证暂不可用（HTTP \(http.statusCode)），未保存密钥。"])
+                          userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("验证暂不可用（HTTP %@），未保存密钥。", comment: ""), String(describing: http.statusCode))])
         }
         guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               root["status"] as? String == "completed" else { throw DreamResearchError.invalidKey }
@@ -205,7 +205,7 @@ enum DreamResearch {
         guard !requestedModes.isEmpty else { throw DreamResearchError.invalidResponse }
         let count = requestedModes.count
         let prompt = """
-        Return exactly \(count) concise travel Journey idea(s) in Chinese, one for each of these modes:
+        Return exactly \(count) concise travel Journey idea(s) in the app output language, one for each of these modes:
         \(requestedModes.map(\.rawValue).joined(separator: ", ")). Do not return other modes.
         Backpack means independent travel with a light pack, public transport, local accommodation,
         culture and optional scenic walks; it is not limited to hiking or wilderness camping.
@@ -302,7 +302,7 @@ enum DreamResearch {
         daily difficulty when verifiable; for driving include road and drive time when verifiable;
         for slow stay show residential bases and day trips without unnecessary accommodation changes.
         Explain why now, what to love, what to accept, confidence and uncertainty. Never invent facts or links.
-        Keep Chinese descriptions and require at least two independent sources.
+        Use the app output language for descriptions and require at least two independent sources.
         """
         let researchTimeout: TimeInterval = depth == .deep ? 180 : (depth == .balanced ? 120 : 90)
         let researched = try await respond(prompt, schema: experienceSchema, web: true,
@@ -366,7 +366,7 @@ enum DreamResearch {
             var checked = step
             if !output.sourceURLs.contains(normalizedURL(step.sourceURL)) {
                 checked.sourceURL = ""
-                checked.rationale += "（本项尚无已核对来源，请出发前自行确认。）"
+                checked.rationale += String(localized: "（本项尚无已核对来源，请出发前自行确认。）")
             }
             return checked
         }
@@ -442,7 +442,7 @@ enum DreamResearch {
             throw NSError(domain: "AIConsent", code: 1, userInfo: [NSLocalizedDescriptionKey:
                 NSLocalizedString("请先在设置中同意向所选 AI 服务商发送资料。", comment: "AI consent required")])
         }
-        let localizedPrompt = prompt + (Locale.current.language.languageCode?.identifier == "zh"
+        let localizedPrompt = prompt + (PublicLanguage.isChinese
             ? "\nUse Simplified Chinese for all user-facing strings."
             : "\nUse natural English for all user-facing strings, regardless of earlier language instructions.")
         var body: [String: Any] = ["model": model, "store": false,
@@ -588,11 +588,11 @@ enum DreamResearch {
         let apiParameter = apiError?["param"] as? String
         let message: String
         switch code {
-        case 401, 403: message = "API Key 无效或没有模型权限，请在设置中重新验证。"
-        case 429: message = "AI 请求过于频繁或额度不足，请稍后重试。"
+        case 401, 403: message = String(localized: "API Key 无效或没有模型权限，请在设置中重新验证。")
+        case 429: message = String(localized: "AI 请求过于频繁或额度不足，请稍后重试。")
         case 400 where !apiMessage.isEmpty:
-            message = "AI 请求参数被拒绝（HTTP 400\(apiParameter.map { " · \($0)" } ?? "")）：\(apiMessage.prefix(240))"
-        default: message = "AI 请求失败（HTTP \(code)）。请稍后重试。"
+            message = String(format: NSLocalizedString("AI 请求参数被拒绝（HTTP 400%@）：%@", comment: ""), apiParameter.map { " · \($0)" } ?? "", String(apiMessage.prefix(240)))
+        default: message = String(format: NSLocalizedString("AI 请求失败（HTTP %@）。请稍后重试。", comment: ""), String(code))
         }
         return NSError(domain: "DreamResearch", code: code,
                        userInfo: [NSLocalizedDescriptionKey: message])
