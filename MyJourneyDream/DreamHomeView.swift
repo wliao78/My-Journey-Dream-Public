@@ -49,7 +49,7 @@ struct DreamHomeView: View {
                         Circle()
                             .fill(loading ? DreamPalette.accent : DreamPalette.muted)
                             .frame(width: 6, height: 6)
-                        Text(status ?? "为你准备徒步、自驾与旅居灵感")
+                        Text(status ?? String(localized: "为你准备背包、自驾与旅居灵感"))
                             .lineLimit(1)
                             .font(.caption)
                             .foregroundStyle(DreamPalette.muted)
@@ -104,14 +104,6 @@ struct DreamHomeView: View {
                 }
             }
             .sheet(isPresented: $showSettings) { DreamSettingsView(store: store) }
-            .onChange(of: showSettings) { _, isPresented in
-                if !isPresented && !loading && DreamKeychain.read() != nil &&
-                    (store.library.experiences.isEmpty || store.library.experiences.allSatisfy({
-                        $0.confidence == String(localized: "通用灵感示例；尚未根据你的要求完成 AI 推荐或实时核对。")
-                    })) {
-                    startDiscovery()
-                }
-            }
             .sheet(item: $proposedJourney) { draft in
                 NewJourneyView(store: store, draft: draft, onSaved: prepareNewJourney)
             }
@@ -126,14 +118,11 @@ struct DreamHomeView: View {
             .task {
                 guard !didStartOnLaunch else { return }
                 didStartOnLaunch = true
-                if DreamKeychain.read() != nil || DreamResearch.isDemoMode {
-                    startDiscovery()
-                } else {
-                    if store.library.experiences.isEmpty {
-                        store.library.experiences = DreamResearch.fallbackRecommendations(modes: Set(JourneyMode.allCases))
-                    }
-                    status = String(localized: "演示灵感已显示 · 设置 API Key 后获取实时推荐")
+                if store.library.experiences.isEmpty {
+                    store.library.experiences = DreamResearch.fallbackRecommendations(modes: Set(JourneyMode.allCases))
                 }
+                status = PublicDemo.enabled ? PublicDemo.notice : String(localized: "请选择思考程度，再开始推荐")
+
             }
         }
     }
@@ -159,6 +148,7 @@ struct DreamHomeView: View {
     }
 
     private func startSubmission() {
+        if PublicDemo.enabled { status = String(localized: "演示模式不会处理你的输入，请关闭演示模式以获取真实 AI 结果。"); return }
         guard !loading, !submitting else { return }
         submitting = true
         speech.stop()
@@ -198,7 +188,7 @@ struct DreamHomeView: View {
     private func modesMentioned(in input: String) -> Set<JourneyMode> {
         let text = input.lowercased()
         let keywords: [(JourneyMode, [String])] = [
-            (.walking, ["徒步", "步道", "hiking", "trekking"]),
+            (.backpack, ["背包", "背包客", "backpack", "徒步", "步道", "hiking", "trekking"]),
             (.roadTrip, ["自驾", "公路旅行", "road trip", "driving"]),
             (.slowStay, ["旅居", "长住", "慢旅行", "slow stay"])
         ]
@@ -795,6 +785,7 @@ private struct DreamSettingsView: View {
                     }
                     SecureField("API Key", text: $key)
                         .textInputAutocapitalization(.never)
+                    PublicAIConfigurationView(provider: PublicAIProvider.selected)
                     Button(verifying ? "正在验证…" : "验证并保存 API Key") {
                         verifying = true
                         verificationMessage = nil
@@ -824,6 +815,11 @@ private struct DreamSettingsView: View {
                         .lineLimit(5...10)
                     Text("画像仅保存在本机；发起研究时会作为推荐条件发送给 AI。")
                         .font(.footnote)
+                }
+                Section("隐私与支持") {
+                    Link("隐私政策", destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#privacy-" + (Locale.current.language.languageCode?.identifier == "zh" ? "zh" : "en"))!)
+                    Link("使用支持", destination: URL(string: "https://wliao78.github.io/My-Journey-Support/#support")!)
+                    Link("联系开发者", destination: URL(string: "mailto:tinyworm@gmail.com")!)
                 }
             }
             .scrollContentBackground(.hidden)

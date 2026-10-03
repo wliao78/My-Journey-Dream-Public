@@ -1,0 +1,18 @@
+Where should your next journey take you—and why?
+
+My Journey Dream thinks in complete experiences, not just destination names: where to go, when to go, how long to stay, and what makes the trip worthwhile. Start with three different kinds of inspiration—backpack journeys, road trips, and slow stays—then explore the one that speaks to you.
+
+Describe your available dates, departure city, travel time, companions, weather preferences, or physical comfort in everyday language. Already know where you are going? Enter the confirmed plan and use the app to think through preparation. Choose quick, balanced, or deep research to control how much time you spend exploring.
+
+Recommendations aim to show both the appeal and the tradeoffs: seasonality, access, effort, and things you may need to accept. Clearly labeled sample cards are available without connecting an AI provider.
+
+Highlights:
+• Backpack, road trip, and slow-stay inspiration
+• Natural-language requests for new or confirmed journeys
+• Three research depths and a stop control
+• Season, duration, and experience context
+• English and Simplified Chinese interfaces that follow your iPhone language
+
+Getting started: Browse the sample ideas. For fresh AI research, choose OpenAI, Claude, Gemini, DeepSeek, Qwen, Kimi, GLM, Doubao, or ERNIE in Settings, enter your own API key, review and accept the data-sharing disclosure, choose a research depth, and start. Research can take time and may incur API charges from your provider.
+
+Important: AI research is not a booking service and cannot guarantee that routes, weather, safety, entry rules, prices, or availability are accurate or current. Check official sources and supplier terms before committing to a trip. Sample cards are illustrative, not live-verified recommendations.

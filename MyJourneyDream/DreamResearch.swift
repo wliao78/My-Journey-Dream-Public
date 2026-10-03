@@ -79,7 +79,7 @@ enum DreamKeychain {
 
 enum DreamResearch {
     static var isDemoMode: Bool {
-        ProcessInfo.processInfo.arguments.contains("-DemoRecommendations")
+        PublicDemo.enabled || ProcessInfo.processInfo.arguments.contains("-DemoRecommendations")
     }
 
     static func fallbackRecommendations(modes: Set<JourneyMode>) -> [JourneyExperience] {
@@ -207,6 +207,8 @@ enum DreamResearch {
         let prompt = """
         Return exactly \(count) concise travel Journey idea(s) in Chinese, one for each of these modes:
         \(requestedModes.map(\.rawValue).joined(separator: ", ")). Do not return other modes.
+        Backpack means independent travel with a light pack, public transport, local accommodation,
+        culture and optional scenic walks; it is not limited to hiking or wilderness camping.
         This is the fast inspiration pass, so do not browse, cite, verify, or produce a detailed itinerary.
         Each idea needs only a memorable name, region (include a searchable Latin-script place name
         in parentheses where applicable), recommended month, duration, one-sentence reason,
@@ -256,60 +258,25 @@ enum DreamResearch {
                        depth: DreamThinkingDepth = .balanced,
                        tracker: DreamResearchTracker? = nil) async throws -> JourneyExperience {
         if isDemoMode {
-            try await Task.sleep(for: .seconds(1))
             var enriched = seed
-            enriched.whyNow = "推荐月份兼顾体验质量与较舒适的旅行节奏；出发前仍需复查实时状况。"
-            enriched.routeOrBase = seed.mode == .slowStay
-                ? "以一个生活便利的街区为基地，控制换住所次数。"
-                : "按每天一段核心体验拆分路线，并预留天气机动日。"
+            enriched.whyNow = String(localized: "这是固定的离线灵感，不代表当前季节已适合出行。")
+            enriched.routeOrBase = String(localized: "选择一处交通方便的基地，安排核心体验与机动日。")
+            enriched.whatToAccept = String(localized: "开放、天气、交通和价格均未实时核验，请勿直接用于预订。")
+            enriched.longStayValue = seed.mode == .slowStay
+                ? String(localized: "比较长住价格、厨房、洗衣、网络、医疗与日常交通。") : ""
             enriched.routePlan = [
-                JourneyRouteStage(day: "第 1–2 天", place: "抵达与适应",
-                    experience: "先熟悉周边，安排一段轻松的核心体验。",
-                    transfer: "抵达主要基地后尽量不再换住处。"),
-                JourneyRouteStage(day: "第 3–5 天", place: "核心路线",
-                    experience: "每天聚焦一处代表性的景观或街区，留足停留时间。",
-                    transfer: "按实际天气和路况调整每日顺序。"),
-                JourneyRouteStage(day: "最后 1–2 天", place: "机动与返程",
-                    experience: "补上因天气错过的体验，留出返程缓冲。",
-                    transfer: "提前复查交通时间与预约。")
+                JourneyRouteStage(day: String(localized: "抵达日"), place: seed.region,
+                    experience: String(localized: "熟悉周边，轻松散步，确认交通与补给。"),
+                    transfer: String(localized: "示例路线，实际交通待核验。")),
+                JourneyRouteStage(day: String(localized: "中间几天"), place: seed.region,
+                    experience: seed.whatYouLove,
+                    transfer: String(localized: "每天保留休息与天气机动时间。")),
+                JourneyRouteStage(day: String(localized: "返程日"), place: seed.region,
+                    experience: String(localized: "整理行李，预留交通缓冲。"),
+                    transfer: String(localized: "示例路线，实际交通待核验。"))
             ]
-            if depth != .quick {
-                let places: [String]
-                let landmarks: [String]
-                switch seed.mode {
-                case .walking:
-                    places = ["丰沙尔", "圣洛伦索角", "Pico do Arieiro", "Pico Ruivo", "Fanal 森林", "25 Fontes", "Seixal 海岸"]
-                    landmarks = ["丰沙尔老城", "Ponta de São Lourenço 步道", "Pico do Arieiro 山脊", "Pico Ruivo 山顶", "Fanal 月桂林", "Levada das 25 Fontes", "Seixal 黑沙滩"]
-                case .roadTrip:
-                    places = ["爱丁堡", "Pitlochry", "Inverness", "Applecross", "Torridon", "Ullapool", "Assynt", "Durness"]
-                    landmarks = ["爱丁堡城堡", "Pitlochry 小镇", "尼斯湖", "Bealach na Bà 山路", "Torridon 山谷", "Ullapool 港口", "Ardvreck Castle", "Sango Bay"]
-                case .slowStay:
-                    places = ["塞维利亚", "塞维利亚", "塞维利亚", "塞维利亚", "塞维利亚", "塞维利亚", "塞维利亚",
-                              "科尔多瓦", "科尔多瓦", "科尔多瓦", "科尔多瓦", "格拉纳达", "格拉纳达", "格拉纳达",
-                              "格拉纳达", "格拉纳达", "格拉纳达", "马拉加", "马拉加", "马拉加", "马拉加"]
-                    landmarks = ["塞维利亚王宫", "圣十字区", "西班牙广场", "特里亚纳区", "都市阳伞", "玛丽亚·路易莎公园", "瓜达尔基维尔河畔",
-                                 "科尔多瓦清真寺主教座堂", "犹太区", "罗马桥", "维亚纳宫", "阿尔罕布拉宫", "阿尔拜辛区", "圣尼古拉斯观景台",
-                                 "格拉纳达主教座堂", "萨克罗蒙特区", "达罗河步道", "马拉加老城", "阿尔卡萨瓦城堡", "马拉盖塔海滩", "毕加索博物馆"]
-                }
-                let dayCount = Int(seed.duration.prefix(while: \.isNumber)) ?? places.count
-                enriched.routePlan = (1...dayCount).map { day in
-                    JourneyRouteStage(day: "第 \(day) 天", place: places[(day - 1) % places.count],
-                        experience: depth == .deep
-                            ? "上午重点体验\(landmarks[(day - 1) % landmarks.count])；午后探索周边并留出休息；傍晚返回基地。"
-                            : "围绕\(landmarks[(day - 1) % landmarks.count])安排半日至一天，下午保留弹性时间。",
-                        transfer: "从基地出发并返回；出发前核实当日交通与开放情况。",
-                        landmarks: landmarks[(day - 1) % landmarks.count],
-                        timing: depth == .deep ? "上午出发 · 午间休息 · 傍晚返回" : "半天至一天",
-                        alternative: depth == .deep ? "若天气不适合户外活动，改为当地室内体验。" : nil)
-                }
-            }
-            enriched.whatToAccept = "天气与临时管制可能改变计划，需要保留替代方案。"
-            enriched.longStayValue = seed.mode == .slowStay ? "适合建立固定生活节奏，再穿插近郊短途。" : ""
-            enriched.confidence = "模拟器流程数据；正式结果会依据实时来源核对。"
-            enriched.evidence = [
-                EvidenceLink(title: "官方旅行信息", url: "https://example.com/official", role: "官方"),
-                EvidenceLink(title: "路线资料", url: "https://example.org/route", role: "路线")
-            ]
+            enriched.evidence = []
+            enriched.confidence = PublicDemo.notice
             return enriched
         }
         let routeDetail: String
@@ -328,7 +295,10 @@ enum DreamResearch {
         Verify mutable access, season and safety facts with directly relevant sources. \(routeDetail)
         Each routePlan stage needs day range, specific place/base, concrete activity,
         transfer/logistics, specific named landmarks, timing and alternative (empty strings only when not applicable).
-        For walking include trail and
+        For backpack journeys prioritize independent travel with a light pack, public transport,
+        local stays, cultural experiences and optional scenic walks. Do not assume mountaineering
+        or wilderness camping. Include realistic transfer details, lodging bases and packing needs.
+        If the route includes hiking, include trail and
         daily difficulty when verifiable; for driving include road and drive time when verifiable;
         for slow stay show residential bases and day trips without unnecessary accommodation changes.
         Explain why now, what to love, what to accept, confidence and uncertainty. Never invent facts or links.
@@ -428,8 +398,8 @@ enum DreamResearch {
 
     private static var demoExperiences: [JourneyExperience] {
         [
-            JourneyExperience(mode: .walking, title: String(localized: "云上山脊与雾森林"), region: String(localized: "葡萄牙 · 马德拉"),
-                season: String(localized: "10 月"), duration: String(localized: "7 天"), signatureExperience: String(localized: "每天一条代表性步道，兼顾山脊、森林与海岸。"),
+            JourneyExperience(mode: .backpack, title: String(localized: "背包慢游马德拉"), region: String(localized: "葡萄牙 · 马德拉"),
+                season: String(localized: "10 月"), duration: String(localized: "7 天"), signatureExperience: String(localized: "轻装走访老城与海岸，穿插一两次自然漫步。"),
                 whyNow: "", whatYouLove: String(localized: "云海 · 月桂林 · 黑沙海滩"), whatToAccept: "", routeOrBase: "",
                 longStayValue: "", confidence: String(localized: "等待深度研究"), evidence: [],
                 highlights: [String(localized: "Pico 山脊云海"), String(localized: "Fanal 雾森林"), String(localized: "天然海水池")]),
@@ -465,6 +435,9 @@ enum DreamResearch {
                                 background: Bool = true, timeout: TimeInterval = 45,
                                 model: String = "gpt-6-astra") async throws -> ResearchResponse {
         guard let key = DreamKeychain.read(), !key.isEmpty else { throw DreamResearchError.missingKey }
+        guard !PublicDemo.enabled else {
+            throw NSError(domain: "OfflineDemo", code: 1, userInfo: [NSLocalizedDescriptionKey: String(localized: "演示模式不会处理你的输入，请关闭演示模式以获取真实 AI 结果。")])
+        }
         guard PublicAIConsent.granted else {
             throw NSError(domain: "AIConsent", code: 1, userInfo: [NSLocalizedDescriptionKey:
                 NSLocalizedString("请先在设置中同意向所选 AI 服务商发送资料。", comment: "AI consent required")])

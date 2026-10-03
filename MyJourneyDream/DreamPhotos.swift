@@ -2,10 +2,11 @@ import Foundation
 
 enum DreamPhotos {
     static func search(for experience: JourneyExperience) async -> [JourneyPhoto] {
+        guard !PublicDemo.enabled else { return [] }
         let place = searchPlace(experience.region)
         let suffix: String
         switch experience.mode {
-        case .walking: suffix = "hiking trail"
+        case .backpack: suffix = "scenic town travel"
         case .roadTrip: suffix = "scenic road"
         case .slowStay: suffix = "old town square"
         }

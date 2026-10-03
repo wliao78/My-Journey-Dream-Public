@@ -1,7 +1,7 @@
 import Foundation
 
 enum JourneyMode: String, Codable, CaseIterable, Identifiable {
-    case walking = "徒步"
+    case backpack = "背包"
     case roadTrip = "自驾"
     case slowStay = "旅居"
 
@@ -9,24 +9,41 @@ enum JourneyMode: String, Codable, CaseIterable, Identifiable {
     var title: String { NSLocalizedString(rawValue, comment: "Journey mode") }
     var symbol: String {
         switch self {
-        case .walking: "figure.hiking"
+        case .backpack: "backpack.fill"
         case .roadTrip: "car.side.fill"
         case .slowStay: "house.fill"
         }
     }
     var fallbackAsset: String {
         switch self {
-        case .walking: "WalkingFallback"
+        case .backpack: "WalkingFallback"
         case .roadTrip: "RoadFallback"
         case .slowStay: "StayFallback"
         }
     }
     var question: String {
         switch self {
-        case .walking: String(localized: "哪些步行体验值得专门去？")
+        case .backpack: String(localized: "背上行囊，下一站去哪里？")
         case .roadTrip: String(localized: "哪条路本身值得开？")
         case .slowStay: String(localized: "哪里值得舒服地住上几周？")
         }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let value = try container.decode(String.self)
+        if value == "徒步" || value == "walking" || value == "backpack" {
+            self = .backpack
+        } else if let mode = Self(rawValue: value) {
+            self = mode
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown journey mode")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
